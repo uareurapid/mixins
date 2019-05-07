@@ -188,10 +188,26 @@
 
       stopProgress = function() {
 
-        if(self.intervalId) {
-          clearInterval(self.intervalId);
+        if(self.isLoading) {
+          self.isLoading = false;
           //hide the bar again
           $('#progress-container').addClass('invisible');
+        }
+
+      };
+
+      //workaround to not use setInterval
+      var frameIt = function () {
+        if(self.isLoading) {
+
+          if (self.width >= 100) {
+            stopProgress();
+          } else {
+            self.width++;
+            $('#ytube-like').css('width', self.width + '%');
+         }
+
+          setTimeout(frameIt, 10);
         }
 
       };
@@ -206,17 +222,11 @@
         $('#progress-container').removeClass('invisible');
 
         //always start at minimum 1
-        var width = 1;
-        self.intervalId = setInterval(frameIt, 10);
-        function frameIt() {
-          if (width >= 100) {
-            stopProgress();
-          } else {
-            width++;
-            $('#ytube-like').css('width', width + '%');
-            //elem.style.width =;
-         }
-        }
+        self.width = 1;
+        self.isLoading = true;
+
+        frameIt();
+
       };
 
       //updates the selection message
