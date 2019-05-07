@@ -1,0 +1,306 @@
+<html>
+<head>
+
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+
+  <style>
+  body {
+    witdh:100%;
+    height:100%;
+    margin:0;
+    padding:0;
+    background-color:white;
+    min-width: 400px;
+    min-height: 300px;
+  }
+
+  #progress-container {
+    width:100%;
+  }
+  #ytube-like {
+    background-color:red;
+    width: 1%;
+    height: 5px;
+  }
+
+  .top-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  min-height: 50px;
+}
+
+.invisible {
+  visibility: hidden;
+}
+
+.option {
+  flex-basis: 100%;
+  background-color: #F5F5F5;
+  border: 1px dashed;
+  text-align: center;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.option-selected {
+  background-color: orange;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+@media screen and (min-width: 400px) {
+  .option {
+    flex: 1;
+  }
+}
+
+.content {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: white;
+  position: relative;
+  left: 0;
+  top: 0;
+}
+
+.current-selection-wrapper{
+  text-align: center;
+  margin:0 auto;
+  padding-top: 60px;
+}
+
+  </style>
+
+  <script type="text/javascript">
+  //jquery init
+  $(document).ready(function() {
+
+
+    var self = this;
+    var hash = window.location.hash;
+    var optionsUrl = [];
+    if(hash && hash.indexOf("#") > -1){
+      optionsUrl = hash.replace("#","").split("|");
+      //at least 3
+      for(var i = 0; i < optionsUrl.length; i++) {
+        //some text check
+        if(!optionsUrl[i] || optionsUrl[i].length < 1) {
+          optionsUrl = [];
+        }
+      }
+    }
+
+    //#red|green|blue|cyan|magenta
+
+    var isOptionSelected = function(optionId) {
+      return $('#' + optionId).hasClass("option-selected");
+    };
+    //select all but the one with the given data
+    var selectAllOptionsBut = function(optionData) {
+      $.each($('.option'), function(idx, option) {
+          var opt = $(option);
+          var optData = opt.attr("data-value");
+          if(!opt.hasClass("option-selected") && optData!==optionData ) {
+             opt.addClass("option-selected");
+          }
+      });
+    };
+
+    var buildOptionsFromHash = function() {
+
+      //first we clean the existing hardcoded options
+      $.each($('.option'), function(idx, option) {
+          var opt = $(option);
+          var optData = opt.attr("data-value");
+          if(optData!=="All") {
+              opt.remove(); //remove the html
+          }
+      });
+      //grabe the remaining html and append the rest (there are other ways to do this anyway)
+      var existingHTML = $('.top-toolbar').html();
+      for(var i = 0; i < optionsUrl.length; i++) {
+        existingHTML+= '<div class="option" id="option-' + (i+1) + '" data-value="' + optionsUrl[i] +'">' + optionsUrl[i] + '</div>';
+      }
+      $('.top-toolbar').html(existingHTML);
+
+    }
+
+    //unselect all but the one with the given data
+    var unselectAllOptionsBut = function(optionData) {
+      $.each($('.option'), function(idx, option) {
+          var opt = $(option);
+          var optData = opt.attr("data-value");
+          if(opt.hasClass("option-selected") && optData!==optionData ) {
+             opt.removeClass("option-selected");
+          }
+      });
+    };
+
+      //always at least one option must be selected
+      var howManyOptionsSelected = function() {
+        var howMany = 0;
+        $.each($('.option'), function(idx, option) {
+            if($(option).hasClass("option-selected")) {
+                howMany++;
+            }
+        });
+        return howMany;
+      };
+
+      //get all the selected options
+      var getAllSelectedOptions = function() {
+        var result = [];
+        $.each($('.option'), function(idx, option) {
+            var opt = $(option);
+            if(opt.hasClass("option-selected") ) {
+               result.push(opt);
+            }
+        });
+        return result;
+      };
+
+      //get the text to display on the selection div
+      var getSelectedOptionsText = function() {
+        var result = getAllSelectedOptions();
+        var text = "";
+        for(var i = 0; i < result.length; i++) {
+          text+=result[i].attr("data-value");
+          if(i < result.length -1) {
+            text+=" + "
+          }
+        }
+        return "< " + text + " >";
+      };
+      //check if any option is selected
+      var isAnyOptionSelected = function() {
+
+        var anySelected = false;
+        $.each($('.option'), function(idx, option) {
+            if($(option).hasClass("option-selected")) {
+                anySelected = true;
+            }
+        });
+        return anySelected;
+      };
+
+      stopProgress = function() {
+
+        if(self.intervalId) {
+          clearInterval(self.intervalId);
+          //hide the bar again
+          $('#progress-container').addClass('invisible');
+        }
+
+      };
+
+      //update the progress bar +- slowly
+      var updateProgress = function() {
+        //stop progress if any is running
+        stopProgress();
+
+        //show the progress bar
+        //$('#ytube-like').css('width','0%');
+        $('#progress-container').removeClass('invisible');
+
+        //always start at minimum 1
+        var width = 1;
+        self.intervalId = setInterval(frameIt, 10);
+        function frameIt() {
+          if (width >= 100) {
+            stopProgress();
+          } else {
+            width++;
+            $('#ytube-like').css('width', width + '%');
+            //elem.style.width =;
+         }
+        }
+      };
+
+      //updates the selection message
+      var updateSelectedMessage = function(delayIt) {
+
+        //get the new text and update the content after 3 seconds delay
+        var newText = getSelectedOptionsText();
+        //we do not delay it on page load
+        if(delayIt) {
+          setTimeout(function() {
+            $('.current-selection').text(newText);
+          },3000);
+        } else {
+            $('.current-selection').text(newText);
+        }
+
+
+      };
+
+      //custom options
+      if(optionsUrl.length >=3 ) {
+        buildOptionsFromHash();
+      }//else just use the default ones (could build them dinamically too, but will use hardcoded);
+      //var defaultOptions = ["Opt1","Opt2","Opt3"];
+
+      //always do this on ready
+      updateSelectedMessage(false);
+
+      $.each($('.option'), function(idx, option) {
+
+        //click handler
+        $(option).on("click", function() {
+          var opt = $(this);
+
+          var selectedCount = howManyOptionsSelected();
+
+          //need to have always at least 1 selected
+          if(opt.hasClass("option-selected") && selectedCount > 1){
+            opt.removeClass("option-selected");
+
+            updateProgress();
+            updateSelectedMessage(true);
+
+          } else if(!opt.hasClass("option-selected")) {
+            //select it now
+            opt.addClass("option-selected");
+
+            //select All should deselect all the others
+            if(opt.attr("data-value")==="All") {
+                unselectAllOptionsBut("All");
+            }
+            else {
+              //selecting any other option shhould unselect All, if currently selected
+              if(isOptionSelected('option-all')) {
+                $('#option-all').removeClass("option-selected");
+              }
+            }
+            updateProgress();
+            updateSelectedMessage(true);
+          }
+
+
+        })
+      });
+  });
+  </script>
+</head>
+<body>
+  <div class="top-toolbar">
+    <div class="option option-selected" id="option-all" data-value="All">All
+      <!-- 50% width -->
+    </div>
+    <div class="option" id="option-1" data-value="Opt1">Opt1</div>
+    <div class="option" id="option-2" data-value="Opt2">Opt2</div>
+    <div class="option" id=option-3 data-value="Opt3">Opt3</div>
+ </div>
+ <section class="content">
+  <div class="invisible" id="progress-container">
+    <div id="ytube-like"></div>
+  </div>
+ <div class="current-selection-wrapper">
+   <p>Currently Selected:</p>
+   <div class="current-selection"></div>
+ </div>
+ </section>
+</body>
+</html>
